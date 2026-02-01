@@ -2,9 +2,11 @@ services:
   - type: web
     name: videotextget
     runtime: node
-    buildCommand: npm install && pip install faster-whisper
+    buildCommand: npm install
     startCommand: node server.js
     envVars:
+      - key: GROQ_API_KEY
+        sync: false
       - key: DEEPSEEK_API_KEY
         sync: false
       - key: NODE_ENV

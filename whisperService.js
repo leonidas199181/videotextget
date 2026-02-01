@@ -1,60 +1,43 @@
 /**
- * Whisper 语音转文字服务（本地版）
- * 使用 Python faster-whisper 进行本地转写，完全免费
+ * Whisper 语音转文字服务（Groq API 版）
+ * 使用 Groq 的 Whisper API 进行语音转写，免费且快速
  */
 
-const { spawn } = require('child_process');
-const path = require('path');
+const Groq = require('groq-sdk');
+const fs = require('fs');
+
+const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY
+});
 
 /**
  * 将音频文件转写为文字
  * @param {string} audioPath - 音频文件完整路径
  * @returns {Promise<{text: string, duration: number}>}
  */
-function transcribeAudio(audioPath) {
-    return new Promise((resolve, reject) => {
-        console.log('开始本地语音转文字:', audioPath);
+async function transcribeAudio(audioPath) {
+    console.log('开始语音转文字 (Groq Whisper):', audioPath);
 
-        const scriptPath = path.join(__dirname, 'whisper_local.py');
-        const python = spawn('python3', [scriptPath, audioPath]);
+    // 检查文件是否存在
+    if (!fs.existsSync(audioPath)) {
+        throw new Error('音频文件不存在');
+    }
 
-        let stdout = '';
-        let stderr = '';
-
-        python.stdout.on('data', (data) => {
-            stdout += data.toString();
-        });
-
-        python.stderr.on('data', (data) => {
-            stderr += data.toString();
-            // 显示进度信息（如模型下载）
-            console.log('Whisper:', data.toString().trim());
-        });
-
-        python.on('close', (code) => {
-            if (code !== 0) {
-                console.error('转写失败:', stderr);
-                reject(new Error(stderr || '转写失败'));
-                return;
-            }
-
-            try {
-                const result = JSON.parse(stdout);
-                if (result.success) {
-                    console.log('转写完成，文字长度:', result.text.length);
-                    resolve({
-                        text: result.text,
-                        duration: result.duration || 0,
-                        segments: []
-                    });
-                } else {
-                    reject(new Error(result.error || '转写失败'));
-                }
-            } catch (e) {
-                reject(new Error('解析结果失败: ' + stdout));
-            }
-        });
+    // 调用 Groq Whisper API
+    const transcription = await groq.audio.transcriptions.create({
+        file: fs.createReadStream(audioPath),
+        model: 'whisper-large-v3',
+        language: 'zh',
+        response_format: 'verbose_json'
     });
+
+    console.log('转写完成，文字长度:', transcription.text.length);
+
+    return {
+        text: transcription.text,
+        duration: transcription.duration || 0,
+        segments: transcription.segments || []
+    };
 }
 
 module.exports = { transcribeAudio };
