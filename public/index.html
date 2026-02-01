@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>视频文案提取工具</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      padding: 20px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 600px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 1.8rem;
+      background: linear-gradient(90deg, #00d9ff, #00ff88);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .upload-area {
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      border-radius: 15px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 20px;
+    }
+
+    .upload-area:hover {
+      border-color: #00d9ff;
+      background: rgba(0, 217, 255, 0.05);
+    }
+
+    .upload-area.dragover {
+      border-color: #00ff88;
+      background: rgba(0, 255, 136, 0.1);
+    }
+
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+
+    .upload-text {
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 10px;
+    }
+
+    .upload-hint {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .file-info {
+      background: rgba(0, 217, 255, 0.1);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .file-info.show {
+      display: block;
+    }
+
+    .file-name {
+      font-weight: 500;
+      margin-bottom: 5px;
+    }
+
+    .file-size {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-top: 15px;
+      display: none;
+    }
+
+    .btn.show {
+      display: block;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-upload {
+      background: linear-gradient(90deg, #00d9ff, #00ff88);
+      color: #1a1a2e;
+      display: block;
+      margin-top: 0;
+    }
+
+    .btn-extract {
+      background: linear-gradient(90deg, #ff6b6b, #ffa502);
+    }
+
+    .btn-transcribe {
+      background: linear-gradient(90deg, #a55eea, #8854d0);
+    }
+
+    .btn-generate {
+      background: linear-gradient(90deg, #2ed573, #1e90ff);
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      margin-top: 20px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar.show {
+      display: block;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00d9ff, #00ff88);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .status {
+      text-align: center;
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .status.show {
+      display: block;
+    }
+
+    .status.success {
+      background: rgba(0, 255, 136, 0.15);
+      color: #00ff88;
+    }
+
+    .status.error {
+      background: rgba(255, 71, 87, 0.15);
+      color: #ff4757;
+    }
+
+    .result-box {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .result-box.show {
+      display: block;
+    }
+
+    .result-box h3 {
+      margin-bottom: 15px;
+      color: #00d9ff;
+    }
+
+    .result-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .result-summary {
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 15px;
+      font-style: italic;
+    }
+
+    .result-content {
+      line-height: 1.8;
+      white-space: pre-wrap;
+      margin-bottom: 15px;
+    }
+
+    .result-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      background: rgba(0, 217, 255, 0.2);
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 0.85rem;
+      color: #00d9ff;
+    }
+
+    .transcript-box {
+      background: rgba(165, 94, 234, 0.1);
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 20px;
+      display: none;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .transcript-box.show {
+      display: block;
+    }
+
+    .transcript-box h4 {
+      margin-bottom: 10px;
+      color: #a55eea;
+      font-size: 0.9rem;
+    }
+
+    .transcript-text {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.8);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🎬 视频文案提取</h1>
+    <div class="upload-area" id="uploadArea">
+      <div class="upload-icon">📁</div>
+      <div class="upload-text">点击或拖拽视频文件到这里</div>
+      <div class="upload-hint">支持 mp4, mov, avi, webm 格式，最大 500MB</div>
+    </div>
+    <input type="file" id="fileInput" accept="video/*">
+    <div class="file-info" id="fileInfo">
+      <div class="file-name" id="fileName"></div>
+      <div class="file-size" id="fileSize"></div>
+    </div>
+    <button class="btn btn-upload" id="uploadBtn" disabled>开始上传</button>
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="status" id="status"></div>
+    <button class="btn btn-extract" id="extractBtn">🎵 提取音频</button>
+    <div class="status" id="extractStatus"></div>
+    <button class="btn btn-transcribe" id="transcribeBtn">📝 语音转文字</button>
+    <div class="status" id="transcribeStatus"></div>
+    <div class="transcript-box" id="transcriptBox">
+      <h4>📄 原始转写</h4>
+      <div class="transcript-text" id="transcriptText"></div>
+    </div>
+    <button class="btn btn-generate" id="generateBtn">✨ 生成文案</button>
+    <div class="status" id="generateStatus"></div>
+    <div class="result-box" id="resultBox">
+      <h3>📋 生成的文案</h3>
+      <div class="result-title" id="resultTitle"></div>
+      <div class="result-summary" id="resultSummary"></div>
+      <div class="result-content" id="resultContent"></div>
+      <div class="result-tags" id="resultTags"></div>
+    </div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const uploadArea = $('uploadArea'), fileInput = $('fileInput'), fileInfo = $('fileInfo');
+    const fileName = $('fileName'), fileSize = $('fileSize'), uploadBtn = $('uploadBtn');
+    const progressBar = $('progressBar'), progressFill = $('progressFill'), status = $('status');
+    const extractBtn = $('extractBtn'), extractStatus = $('extractStatus');
+    const transcribeBtn = $('transcribeBtn'), transcribeStatus = $('transcribeStatus');
+    const transcriptBox = $('transcriptBox'), transcriptText = $('transcriptText');
+    const generateBtn = $('generateBtn'), generateStatus = $('generateStatus');
+    const resultBox = $('resultBox'), resultTitle = $('resultTitle');
+    const resultSummary = $('resultSummary'), resultContent = $('resultContent'), resultTags = $('resultTags');
+
+    let selectedFile = null, uploadedFilename = null, audioFilename = null, currentTranscript = '';
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+    uploadArea.addEventListener('drop', e => {
+      e.preventDefault(); uploadArea.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', e => { if (e.target.files.length > 0) handleFileSelect(e.target.files[0]); });
+
+    function handleFileSelect(file) {
+      selectedFile = file;
+      fileName.textContent = file.name;
+      fileSize.textContent = formatFileSize(file.size);
+      fileInfo.classList.add('show');
+      uploadBtn.disabled = false;
+      status.classList.remove('show');
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    uploadBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+      const formData = new FormData();
+      formData.append('video', selectedFile);
+      uploadBtn.disabled = true;
+      progressBar.classList.add('show');
+      status.classList.remove('show');
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener('progress', e => {
+          if (e.lengthComputable) progressFill.style.width = (e.loaded / e.total * 100) + '%';
+        });
+        const response = await new Promise((resolve, reject) => {
+          xhr.onload = () => xhr.status === 200 ? resolve(JSON.parse(xhr.responseText)) : reject(new Error(JSON.parse(xhr.responseText).message || '上传失败'));
+          xhr.onerror = () => reject(new Error('网络错误'));
+          xhr.open('POST', '/api/upload');
+          xhr.send(formData);
+        });
+        showStatus(status, 'success', `✅ ${response.message}！`);
+        uploadedFilename = response.file.filename;
+        extractBtn.classList.add('show');
+      } catch (error) {
+        showStatus(status, 'error', `❌ ${error.message}`);
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+
+    extractBtn.addEventListener('click', async () => {
+      if (!uploadedFilename) return;
+      extractBtn.disabled = true;
+      extractBtn.textContent = '⚙️ 提取中...';
+      extractStatus.classList.remove('show');
+      try {
+        const res = await fetch('/api/extract-audio', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: uploadedFilename })
+        });
+        const result = await res.json();
+        if (result.success) {
+          showStatus(extractStatus, 'success', `✅ ${result.message}`);
+          audioFilename = result.audio.filename;
+          transcribeBtn.classList.add('show');
+        } else {
+          showStatus(extractStatus, 'error', `❌ ${result.message}`);
+        }
+      } catch (error) {
+        showStatus(extractStatus, 'error', `❌ ${error.message}`);
+      } finally {
+        extractBtn.disabled = false;
+        extractBtn.textContent = '🎵 提取音频';
+      }
+    });
+
+    transcribeBtn.addEventListener('click', async () => {
+      if (!audioFilename) return;
+      transcribeBtn.disabled = true;
+      transcribeBtn.textContent = '⚙️ 转写中...';
+      transcribeStatus.classList.remove('show');
+      try {
+        const res = await fetch('/api/transcribe', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ audioFilename })
+        });
+        const result = await res.json();
+        if (result.success) {
+          showStatus(transcribeStatus, 'success', `✅ ${result.message}`);
+          currentTranscript = result.transcription.text;
+          transcriptText.textContent = currentTranscript;
+          transcriptBox.classList.add('show');
+          generateBtn.classList.add('show');
+        } else {
+          showStatus(transcribeStatus, 'error', `❌ ${result.message}`);
+        }
+      } catch (error) {
+        showStatus(transcribeStatus, 'error', `❌ ${error.message}`);
+      } finally {
+        transcribeBtn.disabled = false;
+        transcribeBtn.textContent = '📝 语音转文字';
+      }
+    });
+
+    generateBtn.addEventListener('click', async () => {
+      if (!currentTranscript) return;
+      generateBtn.disabled = true;
+      generateBtn.textContent = '⚙️ 生成中...';
+      generateStatus.classList.remove('show');
+      resultBox.classList.remove('show');
+      try {
+        const res = await fetch('/api/generate-copy', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: currentTranscript })
+        });
+        const result = await res.json();
+        if (result.success) {
+          showStatus(generateStatus, 'success', `✅ ${result.message}`);
+          resultTitle.textContent = result.copy.title;
+          resultSummary.textContent = result.copy.summary;
+          resultContent.textContent = result.copy.content;
+          resultTags.innerHTML = result.copy.tags.map(t => `<span class="tag">#${t}</span>`).join('');
+          resultBox.classList.add('show');
+        } else {
+          showStatus(generateStatus, 'error', `❌ ${result.message}`);
+        }
+      } catch (error) {
+        showStatus(generateStatus, 'error', `❌ ${error.message}`);
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = '✨ 生成文案';
+      }
+    });
+
+    function showStatus(el, type, message) {
+      el.className = 'status show ' + type;
+      el.textContent = message;
+    }
+  </script>
+</body>
+
+</html>
