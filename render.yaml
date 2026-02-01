@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: videotextget
+    runtime: node
+    buildCommand: npm install && pip install faster-whisper
+    startCommand: node server.js
+    envVars:
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: NODE_ENV
+        value: production
+    autoDeploy: true
